@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base href="/">
+
+    <meta charset="UTF-8">
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+    <meta name="description" content="A new Flutter project.">
+    <meta name="monetag" content="15b5f5068869dfb1317ccaa280e8a36c">
+    <!-- iOS meta tags & icons -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="lotterypi">
+    <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon.png" />
+
+    <title>lotterypi</title>
+    <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+<script src="flutter_bootstrap.js" async></script>
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
+
+<script>
+        Pi.init({
+            version: "2.0",
+            sandbox: true
+        })
+        async function loginWithPi(authCallback, paymentCallback) {
+            try {
+                const authRes = await window.Pi.authenticate(["username", "payments", "wallet_address"], paymentCallback);
+                authCallback(authRes); // Call the authentication callback with the result
+            } catch (error) {
+                console.error("Pi authentication failed:", error);
+                authCallback(null); // Call the authentication callback with null on failure
+            }
+        }
+
+        async function initiatePiPayment(amount, memo, metadata, callback) {
+            const {
+                Pi
+            } = window;
+            try {
+                const payment = await Pi.createPayment({
+                    amount: amount,
+                    memo: memo,
+                    metadata: {
+                        'gameId': metadata
+                    },
+                }, {
+                    onReadyForServerApproval: function (paymentId) {
+                        console.log("Payment ready for approval:", paymentId);
+                        callback({
+                            status: "pending_approval",
+                            paymentId: paymentId
+                        });
+                    },
+                    onReadyForServerCompletion: function (paymentId, txid) {
+                        console.log("Payment completed:", paymentId, "Transaction ID:", txid);
+                        callback({
+                            status: "completed",
+                            paymentId: paymentId,
+                            txid: txid
+                        });
+                    },
+                    onCancel: function (paymentId) {
+                        console.log("Payment cancelled:", paymentId);
+                        callback({
+                            status: "cancelled",
+                            paymentId: paymentId
+                        });
+                    },
+                    onError: function (error, payment) {
+                    },
+                });
+            } catch (error) {
+                console.error("Payment Error:", error);
+            }
+        }
+    </script>
+</body>
+
+</html>
